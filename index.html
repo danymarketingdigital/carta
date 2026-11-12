@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+/* =====================================================================
+   CARTA: un solo sitio para todos los clientes.
+   Cada local tiene su link:  https://TU-SITIO.netlify.app/?id=CODIGO-DE-SU-PLANILLA
+   (el código es la parte de la URL de la Google Sheet entre /d/ y /edit).
+   El local edita TODO en su Google Sheet:
+     - pestaña "Productos": categoria, nombre, descripcion, precio, foto, disponible
+     - pestaña "Datos":     campo / valor (nombre, logo, direccion, telefono,
+                            whatsapp, instagram, color)
+   La planilla debe estar compartida como "Cualquier persona con el enlace: Lector".
+   Sin ?id= en el link se muestra una carta de ejemplo.
+   ===================================================================== */
+const PLANILLA = (new URLSearchParams(location.search).get("id")||"").replace(/[^\w-]/g,"");
+
+// Valores de ejemplo (se reemplazan por la pestaña "Datos" del local)
+const CONFIG = {
+  nombre:    "Tu Local",
+  logo:      "",
+  direccion: "Av. Ejemplo 1234, Santiago",
+  telefono:  "+56 9 1234 5678",
+  whatsapp:  "56912345678",
+  instagram: "tulocal",
+  color:     "#F72DA4",
+  moneda:    "CLP"
+};
+</script>
+<style>
+  /* Paleta de colores */
+  :root{
+    --brand:#F72DA4;      /* fucsia principal */
+    --rosa:#F58BCB;       /* rosa claro */
+    --rosa-bg:#FFF0F8;    /* fondo suave */
+    --celeste:#35C6E8; --verde:#A8D84A; --naranjo:#FF8A2A;
+    --bg:#FFFCFE;         /* blanco cálido */
+    --card:#ffffff; --text:#20263A; /* azul tinta */
+    --muted:#5d6377; --line:#f3dcea;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Montserrat",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  header{background:linear-gradient(180deg,var(--rosa-bg),var(--bg));border-bottom:4px solid var(--brand)}
+  .head{max-width:900px;margin:0 auto;padding:20px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .logo{width:84px;height:84px;border-radius:18px;object-fit:contain;padding:6px;background:#fff;color:var(--brand);display:grid;place-items:center;font-weight:800;font-size:30px;flex:none;box-shadow:0 2px 10px rgba(247,45,164,.18)}
+  .head h1{margin:0;font-size:26px;line-height:1.1;font-weight:800}
+  .info{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:6px;font-size:14px;color:var(--muted)}
+  .info a{color:inherit;text-decoration:none}
+  .info a:hover{color:var(--brand)}
+  .sticky{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0 6px}
+  .wrap{max-width:900px;margin:0 auto;padding:0 16px}
+  .search{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font:inherit;font-size:15px;background:var(--card)}
+  .search:focus{outline:2px solid var(--brand);border-color:transparent}
+  .cats{display:flex;gap:8px;overflow-x:auto;padding:10px 0 6px;scrollbar-width:none}
+  .cats::-webkit-scrollbar{display:none}
+  .cat{flex:none;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);font:inherit;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;white-space:nowrap}
+  .cat.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  section{padding-top:14px}
+  section h2{font-size:19px;font-weight:800;margin:6px 0 12px;display:inline-block;background:linear-gradient(transparent 62%,var(--rosa) 62%);padding:0 4px}
+  section:nth-of-type(4n+2) h2{background:linear-gradient(transparent 62%,var(--celeste) 62%)}
+  section:nth-of-type(4n+3) h2{background:linear-gradient(transparent 62%,var(--verde) 62%)}
+  section:nth-of-type(4n+4) h2{background:linear-gradient(transparent 62%,#ffc08f 62%)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .item{background:var(--card);border-radius:14px;padding:14px;display:flex;gap:12px;border:1px solid var(--line);box-shadow:0 2px 6px rgba(32,38,58,.05);min-height:110px}
+  .item .txt{flex:1;min-width:0;display:flex;flex-direction:column}
+  .item h3{margin:0 0 4px;font-size:16px;line-height:1.25}
+  .item p{margin:0 0 8px;font-size:13.5px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .price{margin-top:auto;font-weight:700;color:var(--brand);font-size:16px}
+  .item img{width:96px;height:96px;object-fit:cover;border-radius:10px;flex:none;background:var(--line)}
+  .item.agotado{opacity:.55}
+  .tag{display:inline-block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:6px;background:var(--naranjo);color:#fff;margin-left:6px;vertical-align:middle}
+  .empty,.msg{text-align:center;color:var(--muted);padding:40px 0}
+  footer{text-align:center;font-size:12px;color:var(--muted);padding:34px 16px 40px;margin-top:30px;border-top:1px solid var(--line)}
+  .credit{display:inline-block;margin-top:8px;color:var(--muted);text-decoration:none}
+  .credit b{color:#F72DA4}
+  .credit:hover{text-decoration:underline}
+  @media (max-width:480px){ .head h1{font-size:22px} .item img{width:80px;height:80px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="head">
+    <div id="logo" class="logo"></div>
+    <div>
+      <h1 id="nombre"></h1>
+      <div class="info" id="info"></div>
+    </div>
+  </div>
+</header>
+
+<div class="sticky">
+  <div class="wrap">
+    <input id="q" class="search" type="search" placeholder="Buscar productos..." autocomplete="off">
+    <nav id="cats" class="cats"></nav>
+  </div>
+</div>
+
+<main class="wrap" id="menu"><div class="msg">Cargando carta…</div></main>
+<footer id="foot"></footer>
+
+<script>
+const DEMO = `categoria,nombre,descripcion,precio,foto,disponible
+Desayunos,Huevos revueltos con tocino,3 huevos revueltos con tocino ahumado y pan tostado,4780,,si
+Desayunos,Palta con pan amasado,Pan amasado de la casa con palta molida,3500,,si
+Almuerzos,Pollo arvejado + acompañamiento,Pollo arvejado con papas fritas o arroz,6990,,si
+Almuerzos,Carne a la cacerola,Plateada a la cacerola con puré casero,10490,,agotado
+Bebidas calientes,Café americano,,1990,,si
+Bebidas calientes,Cappuccino,Espresso con leche espumada,2800,,si
+Jugos,Jugo natural,Frutilla / mango / piña,2990,,si`;
+
+const $ = s => document.querySelector(s);
+const norm = s => (s||"").toString().trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+const esc = s => (s||"").toString().replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function parseCSV(text){
+  const rows=[]; let row=[], cur="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true;
+    else if(c===','){ row.push(cur); cur=""; }
+    else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n') i++; row.push(cur); rows.push(row); row=[]; cur=""; }
+    else cur+=c;
+  }
+  if(cur!==""||row.length){ row.push(cur); rows.push(row); }
+  const head=(rows.shift()||[]).map(norm);
+  return rows.filter(r=>r.some(v=>v.trim())).map(r=>{
+    const o={}; head.forEach((h,i)=>o[h]=(r[i]||"").trim()); return o;
+  });
+}
+
+function money(v){
+  // En pesos chilenos no hay decimales: "4.780", "4,780", "$4780" → 4780
+  const s=String(v);
+  const n=CONFIG.moneda==="CLP" ? Number(s.replace(/[.,]\d{1,2}$/,"").replace(/\D/g,""))
+                                : Number(s.replace(/[^\d,.-]/g,"").replace(/\./g,"").replace(",","."));
+  if(!v||isNaN(n)) return esc(v);
+  return new Intl.NumberFormat("es-CL",{style:"currency",currency:CONFIG.moneda,maximumFractionDigits:CONFIG.moneda==="CLP"?0:2}).format(n);
+}
+
+// Convierte links de Google Drive a imagen directa
+function img(url){
+  const m=url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([\w-]+)/);
+  return m ? `https://lh3.googleusercontent.com/d/${m[1]}=w400` : url;
+}
+
+function renderHeader(){
+  document.title = CONFIG.nombre + " – Carta";
+  document.documentElement.style.setProperty("--brand", CONFIG.color);
+  $("#nombre").textContent = CONFIG.nombre;
+  const L=$("#logo");
+  if(CONFIG.logo){ L.outerHTML=`<img class="logo" id="logo" src="${esc(img(CONFIG.logo))}" alt="${esc(CONFIG.nombre)}">`; }
+  else L.textContent = CONFIG.nombre.trim().charAt(0).toUpperCase();
+  const info=[];
+  if(CONFIG.direccion) info.push(`<a href="https://maps.google.com/?q=${encodeURIComponent(CONFIG.direccion)}" target="_blank">📍 ${esc(CONFIG.direccion)}</a>`);
+  if(CONFIG.telefono)  info.push(`<a href="tel:${esc(CONFIG.telefono.replace(/\s/g,""))}">📞 ${esc(CONFIG.telefono)}</a>`);
+  if(CONFIG.whatsapp)  info.push(`<a href="https://wa.me/${esc(CONFIG.whatsapp)}" target="_blank">💬 WhatsApp</a>`);
+  if(CONFIG.instagram) info.push(`<a href="https://instagram.com/${esc(CONFIG.instagram)}" target="_blank">📷 @${esc(CONFIG.instagram)}</a>`);
+  $("#info").innerHTML = info.join("");
+  $("#foot").innerHTML = `© ${new Date().getFullYear()} ${esc(CONFIG.nombre)}<br>
+    <a class="credit" href="https://www.danymarketing.cl" target="_blank" rel="noopener">Creado por <b>Dany Marketing Digital</b></a>`;
+}
+
+let ITEMS=[], CATS=[];
+
+function render(){
+  const q=norm($("#q").value);
+  const list=ITEMS.filter(it=>!q || norm(it.nombre+" "+it.descripcion+" "+it.categoria).includes(q));
+  const html=CATS.map((c,i)=>{
+    const its=list.filter(it=>it.categoria===c);
+    if(!its.length) return "";
+    return `<section id="cat-${i}"><h2>${esc(c)}</h2><div class="grid">${its.map(it=>`
+      <article class="item${it.agotado?" agotado":""}">
+        <div class="txt">
+          <h3>${esc(it.nombre)}${it.agotado?'<span class="tag">Agotado</span>':""}</h3>
+          ${it.descripcion?`<p>${esc(it.descripcion)}</p>`:""}
+          <div class="price">${money(it.precio)}</div>
+        </div>
+        ${it.foto?`<img src="${esc(img(it.foto))}" alt="" loading="lazy" onerror="this.remove()">`:""}
+      </article>`).join("")}</div></section>`;
+  }).join("");
+  $("#menu").innerHTML = html || `<div class="empty">No encontramos productos con “${esc($("#q").value)}”.</div>`;
+}
+
+function renderCats(){
+  $("#cats").innerHTML = CATS.map((c,i)=>`<button class="cat" data-i="${i}">${esc(c)}</button>`).join("");
+  $("#cats").onclick=e=>{
+    const b=e.target.closest(".cat"); if(!b) return;
+    $("#q").value=""; render();
+    document.querySelectorAll(".cat").forEach(x=>x.classList.toggle("on",x===b));
+    const s=document.getElementById("cat-"+b.dataset.i);
+    if(s) window.scrollTo({top:s.getBoundingClientRect().top+scrollY-$(".sticky").offsetHeight-4,behavior:"smooth"});
+  };
+}
+
+// Lee una pestaña de la planilla como CSV (por nombre de pestaña)
+async function hoja(nombre){
+  const url=`https://docs.google.com/spreadsheets/d/${PLANILLA}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(nombre)}&t=${Date.now()}`;
+  const r=await fetch(url,{cache:"no-store"});
+  if(!r.ok) throw new Error(r.status);
+  return r.text();
+}
+
+async function load(){
+  let text=DEMO;
+  if(PLANILLA){
+    try{
+      const [prod,datos]=await Promise.all([hoja("Productos"), hoja("Datos").catch(()=> "")]);
+      text=prod;
+      parseCSV(datos).forEach(r=>{
+        const k=norm(r.campo), v=r.valor;
+        if(k && v) CONFIG[k]=v;
+      });
+    }catch(e){ renderHeader(); $("#menu").innerHTML='<div class="msg">No se pudo cargar la carta. Intenta de nuevo en unos segundos.</div>'; return; }
+  }
+  CONFIG.instagram=(CONFIG.instagram||"").replace(/^@/,"").replace(/.*instagram\.com\//,"").replace(/\/.*$/,"");
+  CONFIG.whatsapp=(CONFIG.whatsapp||"").replace(/\D/g,"");
+  renderHeader();
+  ITEMS=parseCSV(text).map(r=>{
+    const d=norm(r.disponible);
+    return {categoria:r.categoria||"Otros",nombre:r.nombre||r.producto||"",descripcion:r.descripcion||"",
+            precio:r.precio||"",foto:r.foto||r.imagen||"",oculto:d==="no",agotado:d==="agotado"};
+  }).filter(it=>it.nombre && !it.oculto);
+  CATS=[...new Set(ITEMS.map(it=>it.categoria))];
+  renderCats(); render();
+}
+$("#q").addEventListener("input",render);
+load();
+</script>
+</body>
+</html>
