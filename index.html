@@ -212,6 +212,8 @@ async function load(){
     try{
       const [prod,datos]=await Promise.all([hoja("Productos"), hoja("Datos").catch(()=> "")]);
       text=prod;
+      // Carta real: no mostrar los datos de ejemplo; solo lo que el local escribió en "Datos"
+      ["nombre","logo","direccion","telefono","whatsapp","instagram"].forEach(k=>CONFIG[k]="");
       parseCSV(datos).forEach(r=>{
         const k=norm(r.campo), v=r.valor;
         if(k && v) CONFIG[k]=v;
